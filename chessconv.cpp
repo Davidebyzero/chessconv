@@ -261,7 +261,7 @@ no_more_expected_characters:
 	if (*s != '\0')
 		throw "Unexpected character";
 
-	printf("%s: ", turn<0?"White":"Black");
+	printf("%s: %s (", turn<0?"White":"Black", move);
 	if (castling)
 		printf("Castling(%d)", castling);
 	else
@@ -275,8 +275,7 @@ no_more_expected_characters:
 		if (check<0)
 			printf(" - checkmate");
 	}
-	putchar('\n');
-	putchar('\n');
+	fputs(")\n\n", stdout);
 
 	char *from, *to, c;
 
