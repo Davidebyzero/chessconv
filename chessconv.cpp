@@ -96,7 +96,7 @@ void parseMove(Uchar turn, char *move)
 	if (toFile<0)
 		throw "Error";
 
-	printf("player %u: %c from %d,%d to %d,%d\n", turn, piece, fromRank, fromFile, toRank, toFile);
+	printf("player %u: %c from %d,%d to %d,%d%s\n", turn, piece, fromRank, fromFile, toRank, toFile, capture ? " (capturing)" : "");
 }
 
 int main(int argc, char *argv[])
