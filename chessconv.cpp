@@ -45,8 +45,8 @@ void parseMove(Turn turn, char *move)
 	char *s = move;
 	int castling = 0;
 	char piece = 'P', promote = '\0';
-	int   toFile=-1,   toRank=-1;
 	int fromFile=-1, fromRank=-1;
+	int   toFile=-1,   toRank=-1;
 	bool capture = false;
 	int check = 0; // -1=mate, 1=check, 2=double check
 
@@ -92,29 +92,23 @@ void parseMove(Turn turn, char *move)
 		if (inrange(*s, 'a', 'h'))
 		{
 			int file = *s++ - 'a';
-			if (toFile < 0)
-				toFile = file;
-			else
-			{
-				fromFile = toFile;
-				fromRank = toRank;
-				toFile = file;
-				toRank = -1;
-			}
+			(i==0 ? fromFile : toFile) = file;
 		}
 		if (inrange(*s, '1', '8'))
 		{
 			int rank = 8-1 - (*s++ - '1');
-			if (toRank < 0)
-			{
-				if (toFile < 0)
-					throw "Error";
-				toRank = rank;
-			}
-			else
-				throw "Error";
+			(i==0 ? fromRank : toRank) = rank;
 		}
 	}
+	if (toRank<0 && toFile<0)
+	{
+		toRank = fromRank;
+		toFile = fromFile;
+		fromRank = -1;
+		fromFile = -1;
+	}
+	if (toFile<0 || toRank<0)
+		throw "Error";
 
 	if (piece == 'P')
 	{
@@ -154,9 +148,6 @@ no_more_expected_characters:
 	if (*s != '\0')
 		throw "Unexpected character";
 
-	if (toFile<0 || toRank<0)
-		throw "Error";
-
 	printf("%s: ", turn<0?"White":"Black");
 	if (castling)
 		printf("Castling(%d)", castling);
@@ -174,7 +165,7 @@ no_more_expected_characters:
 	putchar('\n');
 	putchar('\n');
 
-	char *from, *to;
+	char *from, *to, c;
 
 	if (castling)
 	{
@@ -222,12 +213,63 @@ no_more_expected_characters:
 			if (*from == '-' && toRank == (7-turn)/2)
 				from -= turn*8;
 		}
-		char c = *from ^ piece;
+		c = *from ^ piece;
 		if ((c & ~0x20) != 0 || (c==0x20) != (turn>0))
 			throw "Invalid move";
 		*to = *from;
 		*from = '-';
 		break;
+
+	case 'N':
+		{
+			from = NULL;
+			static int knightMoves[][2] =
+			{
+				{-2,-1},
+				{-2,+1},
+				{+2,-1},
+				{+2,+1},
+				{-1,-2},
+				{-1,+2},
+				{+1,-2},
+				{+1,+2},
+			};
+			for (Uint i=0; i<_countof(knightMoves); i++)
+			{
+				int rank = toRank + knightMoves[i][0];
+				int file = toFile + knightMoves[i][1];
+
+				if (fromRank>=0 && rank!=fromRank) continue;
+				if (fromFile>=0 && file!=fromFile) continue;
+
+				if (inrangex(rank,0,8) && inrangex(file,0,8))
+				{
+					char *candidateFrom = board+rank*8+file;
+					c = *candidateFrom ^ piece;
+					if ((c & ~0x20) == 0 && (c==0x20) == (turn>0))
+					{
+						if (from != NULL)
+							throw "Ambiguous knight move";
+						from = candidateFrom;
+					}
+				}
+			}
+			if (from == NULL)
+				throw "Invalid knight move";
+
+			to = board+toRank*8+toFile;
+
+			if ((*to != '-') != capture)
+				throw capture ? "Notation says capture, but it isn't one" : "Notation doesn't say capture, but it is one";
+
+			if (capture && ((*to & 0x20)==0x20) != (turn<0))
+				throw "Invalid capture";
+
+			*to = *from;
+			*from = '-';
+
+			break;
+		}
 	}
 }
 
