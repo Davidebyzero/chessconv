@@ -38,7 +38,7 @@ void printBoard()
 void parseMove(Uchar turn, char *move)
 {
 	char *s = move;
-	char piece = 'P';
+	char piece = 'P', promote = '\0';
 	int   toFile=-1,   toRank=-1;
 	int fromFile=-1, fromRank=-1;
 	bool capture = false;
@@ -90,13 +90,33 @@ void parseMove(Uchar turn, char *move)
 		}
 	}
 
+	if (piece == 'P')
+	{
+		if (*s == '=')
+			s++;
+		switch (*s)
+		{
+		case 'N':
+		case 'B':
+		case 'R':
+		case 'Q':
+			promote = *s++;
+			break;
+		default:
+			break;
+		}
+	}
+
 	if (*s != '\0')
 		throw "Unexpected character";
 
 	if (toFile<0)
 		throw "Error";
 
-	printf("player %u: %c from %d,%d to %d,%d%s\n", turn, piece, fromRank, fromFile, toRank, toFile, capture ? " (capturing)" : "");
+	printf("player %u: %c from %d,%d to %d,%d%s", turn, piece, fromRank, fromFile, toRank, toFile, capture ? " (capturing)" : "");
+	if (promote)
+		printf(" - promoted to %c", promote);
+	putchar('\n');
 }
 
 int main(int argc, char *argv[])
