@@ -161,7 +161,7 @@ void parseMove(Turn turn, char *move)
 	int fromFile=-1, fromRank=-1;
 	int   toFile=-1,   toRank=-1;
 	bool capture = false;
-	int check = 0; // -1=mate, 1=check, 2=double check
+	int check = 0; // -1=mate, 1=check
 
 	switch (*s)
 	{
@@ -244,11 +244,6 @@ void parseMove(Turn turn, char *move)
 	{
 		s++;
 		check = 1;
-		if (*s == '+')
-		{
-			s++;
-			check = 2;
-		}
 	}
 	else
 	if (*s == '#')
@@ -270,7 +265,7 @@ no_more_expected_characters:
 		if (promote)
 			printf(" - promoted to %c", promote);
 		if (check>0)
-			printf(" - %scheck", check>1 ? "double ": "");
+			printf(" - check");
 		else
 		if (check<0)
 			printf(" - checkmate");
