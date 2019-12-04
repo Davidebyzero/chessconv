@@ -452,7 +452,7 @@ no_more_expected_characters:
 	}
 
 	if (inCheck(turn))
-		throw "Illegal move - putting self into check";
+		throw "Illegal move (in check after own move)";
 
 	if (inCheck((Turn)-turn) != !!check)
 		throw "Notation mismatch (check)";
