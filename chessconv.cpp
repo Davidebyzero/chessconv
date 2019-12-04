@@ -3,7 +3,7 @@
 #include <string.h>
 #include "tools.h"
 
-bool cantCastle[2] = {false, false}; // white, black
+bool cantCastle[2][2] = {false}; // [white, black][-1 (O-O-O), +1 (O-O)]
 int enPassantFile = -1; // 0..7 = file of opponent's pawn open for en passant, -1 = no pawns open for en passant
 char board[64+1] =
 {
@@ -169,6 +169,10 @@ no_more_expected_characters:
 
 	if (castling)
 	{
+		if (cantCastle[(turn+1)/2][(castling+1)/2])
+			throw "Invalid castling";
+		cantCastle[(turn+1)/2][0] = true;
+		cantCastle[(turn+1)/2][1] = true;
 		enPassantFile = -1;
 		return;
 	}
@@ -270,21 +274,53 @@ no_more_expected_characters:
 			}
 			if (from == NULL)
 				throw "Invalid knight move";
-
-			to = board+toRank*8+toFile;
-
-			if ((*to != '-') != capture)
-				throw capture ? "Notation says capture, but it isn't one" : "Notation doesn't say capture, but it is one";
-
-			if (capture && ((*to & 0x20)==0x20) != (turn<0))
-				throw "Invalid capture";
-
-			*to = *from;
-			*from = '-';
-
-			enPassantFile = -1;
-			break;
+			goto standard_move;
 		}
+
+	case 'R':
+	case 'B':
+	case 'Q':
+		throw "Unhandled piece type";
+		break;
+
+	case 'K':
+		if (fromRank>=0 || fromFile>=0)
+			throw "Unnecessary information in king move";
+		for (int rankDiff=-1; rankDiff<=+1; rankDiff++)
+		for (int fileDiff=-1; fileDiff<=+1; fileDiff++)
+			if (rankDiff || fileDiff)
+			{
+				int rank = toRank + rankDiff;
+				int file = toFile + fileDiff;
+
+				if (inrangex(rank,0,8) && inrangex(file,0,8))
+				{
+					from = board+rank*8+file;
+					c = *from ^ piece;
+					if ((c & ~0x20) == 0 && (c==0x20) == (turn>0))
+					{
+						cantCastle[(turn+1)/2][0] = true;
+						cantCastle[(turn+1)/2][1] = true;
+						goto standard_move;
+					}
+				}
+			}
+		throw "Invalid king move";
+
+	standard_move:
+		to = board+toRank*8+toFile;
+
+		if ((*to != '-') != capture)
+			throw capture ? "Notation says capture, but it isn't one" : "Notation doesn't say capture, but it is one";
+
+		if (capture && ((*to & 0x20)==0x20) != (turn<0))
+			throw "Invalid capture";
+
+		*to = *from;
+		*from = '-';
+
+		enPassantFile = -1;
+		break;
 	}
 }
 
