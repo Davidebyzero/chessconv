@@ -5,7 +5,7 @@
 
 bool cantCastle[2] = {false, false}; // white, black
 int enPassantFile = -1; // 0..7 = file of opponent's pawn open for en passant, -1 = no pawns open for en passant
-char state[64+1] =
+char board[64+1] =
 {
 	"rnbqkbnr"
 	"pppppppp"
@@ -19,23 +19,28 @@ char state[64+1] =
 
 char moves[][strlength("Ra1xh7 Ra1xh7")+1] =
 {
-	"e4 e5",
-	"Nf3 Nc6",
-	"Bb5 a6",
+	"e4 d5",
+	"exd5",
 };
 
 void printBoard()
-{return;
+{
 	for (Uint rank=0,i=0; rank<8; rank++)
 	{
 		for (Uint file=0; file<8; file++,i++)
-			putchar(state[i]);
+			putchar(board[i]);
 		putchar('\n');
 	}
 	putchar('\n');
 }
 
-void parseMove(Uchar turn, char *move)
+enum Turn
+{
+	Turn_White = -1,
+	Turn_Black = +1,
+};
+
+void parseMove(Turn turn, char *move)
 {
 	char *s = move;
 	char piece = 'P', promote = '\0';
@@ -128,10 +133,10 @@ void parseMove(Uchar turn, char *move)
 	if (*s != '\0')
 		throw "Unexpected character";
 
-	if (toFile<0)
+	if (toFile<0 || toRank<0)
 		throw "Error";
 
-	printf("player %u: %c from %d,%d to %d,%d%s", turn, piece, fromRank, fromFile, toRank, toFile, capture ? " (capturing)" : "");
+	printf("%s: %c from %d,%d to %d,%d%s", turn<0?"White":"Black", piece, fromRank, fromFile, toRank, toFile, capture ? " (capturing)" : "");
 	if (promote)
 		printf(" - promoted to %c", promote);
 	if (check>0)
@@ -140,6 +145,58 @@ void parseMove(Uchar turn, char *move)
 	if (check<0)
 		printf(" - checkmate");
 	putchar('\n');
+	putchar('\n');
+
+	char *from, *to;
+
+	switch (piece)
+	{
+	case 'P':
+		if (capture)
+		{
+			if (fromFile<0)
+				throw "Missing data";
+			if (fromRank<0)
+				fromRank = toRank - turn;
+			else
+			if (fromRank != toRank - turn)
+				throw "Invalid move";
+
+			if (abs(fromFile - toFile) != 1 || !inrangex(fromRank,0,8))
+				throw "Invalid move";
+
+			from = board+fromRank*8+fromFile;
+			to   = board+  toRank*8+  toFile;
+
+			if (*to == '-')
+				throw "Invalid move";
+		}
+		else
+		{
+			if (fromRank<0)
+				fromRank = toRank - turn;
+			else
+			if (fromRank != toRank - turn)
+				throw "Invalid move";
+
+			if (fromFile<0)
+				fromFile = toFile;
+
+			from = board+fromRank*8+fromFile;
+			to   = board+  toRank*8+  toFile;
+
+			if (*to != '-')
+				throw "Invalid move";
+			if (*from == '-' && toRank == (7-turn)/2)
+				from -= turn*8;
+		}
+		char c = *from ^ piece;
+		if ((c & ~0x20) != 0 || (c==0x20) != (turn>0))
+			throw "Invalid move";
+		*to = *from;
+		*from = '-';
+		break;
+	}
 }
 
 int main(int argc, char *argv[])
@@ -155,7 +212,7 @@ int main(int argc, char *argv[])
 		}
 		try
 		{
-			parseMove(0, moves[i]);
+			parseMove(Turn_White, moves[i]);
 		}
 		catch (char *message)
 		{
@@ -167,7 +224,7 @@ int main(int argc, char *argv[])
 		{
 			try
 			{
-				parseMove(1, blackMove);
+				parseMove(Turn_Black, blackMove);
 			}
 			catch (char *message)
 			{
