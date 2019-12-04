@@ -40,6 +40,119 @@ enum Turn
 	Turn_Black = +1,
 };
 
+static int knightMoves[][2] =
+{
+	{-2,-1},
+	{-2,+1},
+	{+2,-1},
+	{+2,+1},
+	{-1,-2},
+	{-1,+2},
+	{+1,-2},
+	{+1,+2},
+};
+
+bool inCheck(Turn player)
+{
+	char king = player<0 ? 'K' : 'k';
+	int rank, file;
+	for (rank=0; rank<8; rank++)
+	for (file=0; file<8; file++)
+		if (board[rank*8+file] == king)
+			goto found_king;
+	throw "Assert failed: can't find king";
+found_king:
+
+	char piece, queen;
+
+	piece = player>0 ? 'P' : 'p';
+	if (file>0   && board[(rank+player)*8+(file-1)] == piece)
+		return true;
+	if (file<8-1 && board[(rank+player)*8+(file+1)] == piece)
+		return true;
+
+	piece = player>0 ? 'N' : 'n';
+	for (Uint i=0; i<_countof(knightMoves); i++)
+	{
+		int rank2 = rank + knightMoves[i][0];
+		int file2 = file + knightMoves[i][1];
+		if (board[rank2*8+file2] == piece)
+			return true;
+	}
+
+	queen = player>0 ? 'Q' : 'q';
+
+	piece = player>0 ? 'R' : 'r';
+	for (int file2=file+1; file2<8; file2++)
+	{
+		char *pos = board+rank*8+file2;
+		if (*pos == piece || *pos == queen)
+			return true;
+		if (*pos != '-')
+			break;
+	}
+	for (int file2=file-1; file2>=0; file2--)
+	{
+		char *pos = board+rank*8+file2;
+		if (*pos == piece || *pos == queen)
+			return true;
+		if (*pos != '-')
+			break;
+	}
+	for (int rank2=rank+1; rank2<8; rank2++)
+	{
+		char *pos = board+rank2*8+file;
+		if (*pos == piece || *pos == queen)
+			return true;
+		if (*pos != '-')
+			break;
+	}
+	for (int rank2=rank-1; rank2>=0; rank2--)
+	{
+		char *pos = board+rank2*8+file;
+		if (*pos == piece || *pos == queen)
+			return true;
+		if (*pos != '-')
+			break;
+	}
+
+	piece = player>0 ? 'B' : 'b';
+	for (int rank2=rank+1,file2=file+1; rank2<8 && file2<8; rank2++, file2++)
+	{
+		char *pos = board+rank2*8+file2;
+		if (*pos == piece || *pos == queen)
+			return true;
+		if (*pos != '-')
+			break;
+	}
+	for (int rank2=rank-1,file2=file-1; rank2>=0 && file2>=0; rank2--, file2--)
+	{
+		char *pos = board+rank2*8+file2;
+		if (*pos == piece || *pos == queen)
+			return true;
+		if (*pos != '-')
+			break;
+	}
+	for (int rank2=rank-1,file2=file+1; rank2>=0 && file2<8; rank2--, file2++)
+	{
+		char *pos = board+rank2*8+file2;
+		if (*pos == piece || *pos == queen)
+			return true;
+		if (*pos != '-')
+			break;
+	}
+	for (int rank2=rank+1,file2=file-1; rank2<8 && file2>=0; rank2++, file2--)
+	{
+		char *pos = board+rank2*8+file2;
+		if (*pos == piece || *pos == queen)
+			return true;
+		if (*pos != '-')
+			break;
+	}
+
+	return false;
+}
+
 void parseMove(Turn turn, char *move)
 {
 	char *s = move;
@@ -239,43 +352,30 @@ no_more_expected_characters:
 		break;
 
 	case 'N':
+		from = NULL;
+		for (Uint i=0; i<_countof(knightMoves); i++)
 		{
-			from = NULL;
-			static int knightMoves[][2] =
-			{
-				{-2,-1},
-				{-2,+1},
-				{+2,-1},
-				{+2,+1},
-				{-1,-2},
-				{-1,+2},
-				{+1,-2},
-				{+1,+2},
-			};
-			for (Uint i=0; i<_countof(knightMoves); i++)
-			{
-				int rank = toRank + knightMoves[i][0];
-				int file = toFile + knightMoves[i][1];
+			int rank = toRank + knightMoves[i][0];
+			int file = toFile + knightMoves[i][1];
 
-				if (fromRank>=0 && rank!=fromRank) continue;
-				if (fromFile>=0 && file!=fromFile) continue;
+			if (fromRank>=0 && rank!=fromRank) continue;
+			if (fromFile>=0 && file!=fromFile) continue;
 
-				if (inrangex(rank,0,8) && inrangex(file,0,8))
+			if (inrangex(rank,0,8) && inrangex(file,0,8))
+			{
+				char *candidateFrom = board+rank*8+file;
+				c = *candidateFrom ^ piece;
+				if ((c & ~0x20) == 0 && (c==0x20) == (turn>0))
 				{
-					char *candidateFrom = board+rank*8+file;
-					c = *candidateFrom ^ piece;
-					if ((c & ~0x20) == 0 && (c==0x20) == (turn>0))
-					{
-						if (from != NULL)
-							throw "Ambiguous knight move";
-						from = candidateFrom;
-					}
+					if (from != NULL)
+						throw "Ambiguous knight move";
+					from = candidateFrom;
 				}
 			}
-			if (from == NULL)
-				throw "Invalid knight move";
-			goto standard_move;
 		}
+		if (from == NULL)
+			throw "Invalid knight move";
+		goto standard_move;
 
 	case 'R':
 	case 'B':
@@ -322,6 +422,9 @@ no_more_expected_characters:
 		enPassantFile = -1;
 		break;
 	}
+
+	if (inCheck(turn))
+		throw "Illegal move - putting self into check";
 }
 
 int main(int argc, char *argv[])
