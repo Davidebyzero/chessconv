@@ -276,10 +276,10 @@ no_more_expected_characters:
 		if (promote)
 			printf(" - promoted to %c", promote);
 		if (check>0)
-			printf(" - check");
+			fputs(" - check", stdout);
 		else
 		if (check<0)
-			printf(" - checkmate");
+			fputs(" - checkmate", stdout);
 	}
 	fputs(")\n\n", stdout);
 
