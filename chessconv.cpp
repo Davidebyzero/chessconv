@@ -52,17 +52,8 @@ static int knightMoves[][2] =
 	{+1,+2},
 };
 
-bool inCheck(Turn player)
+bool isPositionThreatened(Turn player, int rank, int file)
 {
-	char king = player<0 ? 'K' : 'k';
-	int rank, file;
-	for (rank=0; rank<8; rank++)
-	for (file=0; file<8; file++)
-		if (board[rank*8+file] == king)
-			goto found_king;
-	throw "Assert failed: can't find king";
-found_king:
-
 	char piece, queen;
 
 	piece = player>0 ? 'P' : 'p';
@@ -151,6 +142,17 @@ found_king:
 	}
 
 	return false;
+}
+
+bool inCheck(Turn player)
+{
+	char king = player<0 ? 'K' : 'k';
+	int rank, file;
+	for (rank=0; rank<8; rank++)
+	for (file=0; file<8; file++)
+		if (board[rank*8+file] == king)
+			return isPositionThreatened(player, rank, file);
+	throw "Assert failed: can't find king";
 }
 
 void parseMove(Turn turn, char *move)
@@ -277,7 +279,35 @@ no_more_expected_characters:
 	if (castling)
 	{
 		if (cantCastle[(turn+1)/2][(castling+1)/2])
-			throw "Invalid castling";
+			throw "Invalid castling (already moved rook and/or king)";
+
+		int rank = (1-turn)*(8-1)/2, file;
+		if (isPositionThreatened(turn, rank, 4))
+			throw "Invalid castling (castling out of check)";
+		if (castling<0)
+		{
+			for (int file=1; file<4; file++)
+				if (board[rank*8+file] != '-')
+					throw "Invalid castling (obstruction between rook and king)";
+			if (isPositionThreatened(turn, rank, 4-1))
+				throw "Invalid castling (king would move through check)";
+			file = 0;
+		}
+		else
+		{
+			for (int file=4+1; file<8-1; file++)
+				if (board[rank*8+file] != '-')
+					throw "Invalid castling (obstruction between rook and king)";
+			if (isPositionThreatened(turn, rank, 4+1))
+				throw "Invalid castling (king would move through check)";
+			file = 8-1;
+		}
+
+		board[rank*8 + 4+castling*2] = board[rank*8 + 4   ];
+		board[rank*8 + 4+castling  ] = board[rank*8 + file];
+		board[rank*8 + 4           ] = '-';
+		board[rank*8 + file        ] = '-';
+
 		cantCastle[(turn+1)/2][0] = true;
 		cantCastle[(turn+1)/2][1] = true;
 		enPassantFile = -1;
@@ -450,6 +480,11 @@ no_more_expected_characters:
 		enPassantFile = -1;
 		break;
 	}
+
+	if (board[(8-1)*8+(0  )]=='-') cantCastle[0][0]=true;
+	if (board[(8-1)*8+(8-1)]=='-') cantCastle[0][1]=true;
+	if (board[(0  )*8+(0  )]=='-') cantCastle[1][0]=true;
+	if (board[(0  )*8+(8-1)]=='-') cantCastle[1][1]=true;
 
 	if (inCheck(turn))
 		throw "Illegal move (in check after own move)";
