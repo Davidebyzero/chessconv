@@ -445,7 +445,7 @@ no_more_expected_characters:
 		to = board+toRank*8+toFile;
 
 		if ((*to != '-') != capture)
-			throw capture ? "Notation says capture, but it isn't one" : "Notation doesn't say capture, but it is one";
+			throw "Notation mismatch (capture)";
 
 		if (capture && ((*to & 0x20)==0x20) != (turn<0))
 			throw "Invalid capture";
@@ -459,6 +459,9 @@ no_more_expected_characters:
 
 	if (inCheck(turn))
 		throw "Illegal move - putting self into check";
+
+	if (inCheck((Turn)-turn) != !!check)
+		throw "Notation mismatch (check)";
 }
 
 int main(int argc, char *argv[])
