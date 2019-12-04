@@ -349,8 +349,10 @@ no_more_expected_characters:
 				if (toFile == enPassantFile && toRank == (7+turn*2)/2)
 				{
 					to[-turn*8] = '-';
+#if 0
 					if (!en_passant)
 						throw "Notation mismatch (en passant)";
+#endif
 				}
 				else
 					throw "Invalid move";
