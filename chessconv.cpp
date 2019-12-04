@@ -293,6 +293,8 @@ no_more_expected_characters:
 	switch (piece)
 	{
 	case 'P':
+		if (promote && toRank != (turn+1)*4)
+			throw "Invalid promotion";
 		if (capture)
 		{
 			if (fromFile<0)
@@ -347,7 +349,7 @@ no_more_expected_characters:
 		c = *from ^ piece;
 		if ((c & ~0x20) != 0 || (c==0x20) != (turn>0))
 			throw "Invalid move";
-		*to = *from;
+		*to = promote ? promote : *from;
 		*from = '-';
 		break;
 
