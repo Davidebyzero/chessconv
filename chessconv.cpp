@@ -169,6 +169,7 @@ no_more_expected_characters:
 
 	if (castling)
 	{
+		enPassantFile = -1;
 		return;
 	}
 
@@ -192,15 +193,23 @@ no_more_expected_characters:
 			to   = board+  toRank*8+  toFile;
 
 			if (*to == '-')
-				throw "Invalid move";
+			{
+				if (toFile == enPassantFile && toRank == (7+turn*2)/2)
+					to[-turn*8] = '-';
+				else
+					throw "Invalid move";
+			}
+			else
+			if (*to == '-' || ((*to & 0x20)==0x20) != (turn<0))
+				throw "Invalid capture";
+
+			enPassantFile = -1;
 		}
 		else
 		{
-			if (fromRank<0)
-				fromRank = toRank - turn;
-			else
-			if (fromRank != toRank - turn)
-				throw "Invalid move";
+			if (fromRank>=0)
+				throw "Unnecessary information in pawn move";
+			fromRank = toRank - turn;
 
 			if (fromFile<0)
 				fromFile = toFile;
@@ -211,7 +220,12 @@ no_more_expected_characters:
 			if (*to != '-')
 				throw "Invalid move";
 			if (*from == '-' && toRank == (7-turn)/2)
+			{
 				from -= turn*8;
+				enPassantFile = toFile;
+			}
+			else
+				enPassantFile = -1;
 		}
 		c = *from ^ piece;
 		if ((c & ~0x20) != 0 || (c==0x20) != (turn>0))
@@ -268,6 +282,7 @@ no_more_expected_characters:
 			*to = *from;
 			*from = '-';
 
+			enPassantFile = -1;
 			break;
 		}
 	}
