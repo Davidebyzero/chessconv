@@ -380,8 +380,40 @@ no_more_expected_characters:
 	case 'R':
 	case 'B':
 	case 'Q':
-		throw "Unhandled piece type";
-		break;
+		from = NULL;
+		for (int rankDiff=-1; rankDiff<=+1; rankDiff++)
+		for (int fileDiff=-1; fileDiff<=+1; fileDiff++)
+			if (rankDiff || fileDiff)
+			{
+				if (piece == 'R' && ( rankDiff &&  fileDiff)) continue;
+				if (piece == 'B' && (!rankDiff || !fileDiff)) continue;
+
+				int rank = toRank;
+				int file = toFile;
+				for (;;)
+				{
+					rank += rankDiff;
+					file += fileDiff;
+
+					if (!inrangex(rank,0,8) || !inrange(file,0,8))
+						break;
+
+					if (fromRank>=0 && rank!=fromRank) continue;
+					if (fromFile>=0 && file!=fromFile) continue;
+
+					char *candidateFrom = board+rank*8+file;
+					c = *candidateFrom ^ piece;
+					if ((c & ~0x20) == 0 && (c==0x20) == (turn>0))
+					{
+						if (from != NULL)
+							throw piece=='R' ? "Ambiguous rook move" : piece=='B' ? "Ambiguous bishop move" : "Ambiguous queen move";
+						from = candidateFrom;
+					}
+				}
+			}
+		if (from == NULL)
+			throw piece=='R' ? "Invalid rook move" : piece=='B' ? "Invalid bishop move" : "Invalid queen move";
+		goto standard_move;
 
 	case 'K':
 		if (fromRank>=0 || fromFile>=0)
