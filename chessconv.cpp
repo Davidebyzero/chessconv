@@ -43,6 +43,7 @@ enum Turn
 void parseMove(Turn turn, char *move)
 {
 	char *s = move;
+	int castling = 0;
 	char piece = 'P', promote = '\0';
 	int   toFile=-1,   toRank=-1;
 	int fromFile=-1, fromRank=-1;
@@ -58,6 +59,25 @@ void parseMove(Turn turn, char *move)
 	case 'K':
 		piece = *s++;
 		break;
+	case '0':
+	case 'O':
+		piece = *s++;
+		castling = 1;
+		if (*s != '-')
+			throw "Unexpected character";
+		s++;
+		if (*s != piece)
+			throw "Unexpected character";
+		s++;
+		if (*s == '-')
+		{
+			castling = -1;
+			s++;
+			if (*s != piece)
+				throw "Unexpected character";
+			s++;
+		}
+		goto no_more_expected_characters;
 	default:
 		break;
 	}
@@ -130,24 +150,36 @@ void parseMove(Turn turn, char *move)
 		check = -1;
 	}
 
+no_more_expected_characters:
 	if (*s != '\0')
 		throw "Unexpected character";
 
 	if (toFile<0 || toRank<0)
 		throw "Error";
 
-	printf("%s: %c from %d,%d to %d,%d%s", turn<0?"White":"Black", piece, fromRank, fromFile, toRank, toFile, capture ? " (capturing)" : "");
-	if (promote)
-		printf(" - promoted to %c", promote);
-	if (check>0)
-		printf(" - %scheck", check>1 ? "double ": "");
+	printf("%s: ", turn<0?"White":"Black");
+	if (castling)
+		printf("Castling(%d)", castling);
 	else
-	if (check<0)
-		printf(" - checkmate");
+	{
+		printf("%c from %d,%d to %d,%d%s", piece, fromRank, fromFile, toRank, toFile, capture ? " (capturing)" : "");
+		if (promote)
+			printf(" - promoted to %c", promote);
+		if (check>0)
+			printf(" - %scheck", check>1 ? "double ": "");
+		else
+		if (check<0)
+			printf(" - checkmate");
+	}
 	putchar('\n');
 	putchar('\n');
 
 	char *from, *to;
+
+	if (castling)
+	{
+		return;
+	}
 
 	switch (piece)
 	{
