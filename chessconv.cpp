@@ -286,7 +286,7 @@ no_more_expected_characters:
 			throw "Invalid castling (castling out of check)";
 		if (castling<0)
 		{
-			for (int file=1; file<4; file++)
+			for (file=1; file<4; file++)
 				if (board[rank*8+file] != '-')
 					throw "Invalid castling (obstruction between rook and king)";
 			if (isPositionThreatened(turn, rank, 4-1))
@@ -295,7 +295,7 @@ no_more_expected_characters:
 		}
 		else
 		{
-			for (int file=4+1; file<8-1; file++)
+			for (file=4+1; file<8-1; file++)
 				if (board[rank*8+file] != '-')
 					throw "Invalid castling (obstruction between rook and king)";
 			if (isPositionThreatened(turn, rank, 4+1))
