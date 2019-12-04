@@ -42,7 +42,7 @@ void parseMove(Uchar turn, char *move)
 	int   toFile=-1,   toRank=-1;
 	int fromFile=-1, fromRank=-1;
 	bool capture = false;
-	int check = 0;
+	int check = 0; // -1=mate, 1=check, 2=double check
 
 	switch (*s)
 	{
@@ -118,6 +118,12 @@ void parseMove(Uchar turn, char *move)
 			check = 2;
 		}
 	}
+	else
+	if (*s == '#')
+	{
+		s++;
+		check = -1;
+	}
 
 	if (*s != '\0')
 		throw "Unexpected character";
@@ -128,8 +134,11 @@ void parseMove(Uchar turn, char *move)
 	printf("player %u: %c from %d,%d to %d,%d%s", turn, piece, fromRank, fromFile, toRank, toFile, capture ? " (capturing)" : "");
 	if (promote)
 		printf(" - promoted to %c", promote);
-	if (check)
+	if (check>0)
 		printf(" - %scheck", check>1 ? "double ": "");
+	else
+	if (check<0)
+		printf(" - checkmate");
 	putchar('\n');
 }
 
