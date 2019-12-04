@@ -424,17 +424,20 @@ no_more_expected_characters:
 					if (!inrangex(rank,0,8) || !inrange(file,0,8))
 						break;
 
-					if (fromRank>=0 && rank!=fromRank) continue;
-					if (fromFile>=0 && file!=fromFile) continue;
-
 					char *candidateFrom = board+rank*8+file;
 					c = *candidateFrom ^ piece;
 					if ((c & ~0x20) == 0 && (c==0x20) == (turn>0))
 					{
+						if (fromRank>=0 && rank!=fromRank) break;
+						if (fromFile>=0 && file!=fromFile) break;
+
 						if (from != NULL)
 							throw piece=='R' ? "Ambiguous rook move" : piece=='B' ? "Ambiguous bishop move" : "Ambiguous queen move";
 						from = candidateFrom;
 					}
+
+					if (*candidateFrom != '-')
+						break;
 				}
 			}
 		if (from == NULL)
