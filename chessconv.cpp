@@ -163,6 +163,7 @@ void parseMove(Turn turn, char *move)
 	int fromFile=-1, fromRank=-1;
 	int   toFile=-1,   toRank=-1;
 	bool capture = false;
+	bool en_passant = false;
 	int check = 0; // -1=mate, 1=check
 
 	switch (*s)
@@ -227,18 +228,26 @@ void parseMove(Turn turn, char *move)
 
 	if (piece == 'P')
 	{
-		if (*s == '=')
-			s++;
-		switch (*s)
+		if (s[0]=='e' && s[1]=='.' && s[2]=='p' && s[3]=='.')
 		{
-		case 'N':
-		case 'B':
-		case 'R':
-		case 'Q':
-			promote = *s++;
-			break;
-		default:
-			break;
+			s += 4;
+			en_passant = true;
+		}
+		else
+		{
+			if (*s == '=')
+				s++;
+			switch (*s)
+			{
+			case 'N':
+			case 'B':
+			case 'R':
+			case 'Q':
+				promote = *s++;
+				break;
+			default:
+				break;
+			}
 		}
 	}
 
@@ -263,7 +272,7 @@ no_more_expected_characters:
 		printf("Castling(%d)", castling);
 	else
 	{
-		printf("%c from %d,%d to %d,%d%s", piece, fromRank, fromFile, toRank, toFile, capture ? " (capturing)" : "");
+		printf("%c from %d,%d to %d,%d%s", piece, fromRank, fromFile, toRank, toFile, capture ? en_passant ? " (capturing en passant)" : " (capturing)" : "");
 		if (promote)
 			printf(" - promoted to %c", promote);
 		if (check>0)
@@ -338,18 +347,27 @@ no_more_expected_characters:
 			if (*to == '-')
 			{
 				if (toFile == enPassantFile && toRank == (7+turn*2)/2)
+				{
 					to[-turn*8] = '-';
+					if (!en_passant)
+						throw "Notation mismatch (en passant)";
+				}
 				else
 					throw "Invalid move";
 			}
 			else
 			if (*to == '-' || ((*to & 0x20)==0x20) != (turn<0))
 				throw "Invalid capture";
+			else
+			if (en_passant)
+				throw "Notation mismatch (en passant)";
 
 			enPassantFile = -1;
 		}
 		else
 		{
+			if (en_passant)
+				throw "Notation mismatch (en passant)";
 			if (fromRank>=0)
 				throw "Unnecessary information in pawn move";
 			fromRank = toRank - turn;
